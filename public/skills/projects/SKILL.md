@@ -5,6 +5,8 @@ Entries under `content/sources/entries/` with `type: project` or `type: visual`.
 - Projects → `/projects`
 - Visuals → `/visuals` (HTML embeds via `visualPath` or folder `index.html`)
 
-Folder packaging lets each visual ship custom HTML/JS/CSS/data beside `index.md`.
+Folder packaging lets each visual (or project with assets) ship custom HTML/JS/CSS/data beside `index.md`.
 
-See [docs/entries.md](/docs/entries) for packaging details.
+Same rule as blog: keep interactive assets **inside the entry folder** (e.g. `embeds/`), served at `/entries/{slug}/…` — not a global `public/embeds/` dump.
+
+See [docs/entries.md](/docs/entries) and [blog skill](/skills/blog/SKILL.md) for packaging details.

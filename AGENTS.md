@@ -37,3 +37,4 @@ Default persistent store: `data/vectors.sqlite` (SQLite). Optional Postgres/pgve
 3. After wiki changes, recompile the graph (`presence compile` / `--no-llm`).
 4. Keep Zod schemas in sync when adding routes.
 5. Do not invent a published template URL — set `deploy.templateRepoUrl` only when real.
+6. Entry packaging: posts/projects/visuals with local interactives (maps, plots, widgets) use a **folder** under `content/sources/entries/{slug}/` with `index.md` + sibling assets (e.g. `embeds/`). Serve via `/entries/{slug}/…`. Do not dump post-specific HTML into `public/embeds/`. See `docs/entries.md` and `/skills/blog/SKILL.md`.

@@ -14,6 +14,7 @@ You are working with a **Presence** site: Next.js App Router + a compiled LLM Wi
 - `content/wiki/**` is the **compiled** knowledge base. Densely `[[wiki-link]]` pages. Cite sources in frontmatter.
 - After wiki edits, run `npm run presence -- compile` (or POST `/api/v1/admin/compile`) to refresh `content/wiki-graph.json`.
 - Contradictions belong in wiki frontmatter / “Views that evolved” — not by rewriting sources.
+- **Packaging:** entries with local interactive assets (Folium, plots, DataTables, custom HTML) live in `content/sources/entries/{slug}/` as `index.md` + siblings (commonly `embeds/`). Reference with `/entries/{slug}/…`. Do not put post-specific widgets in `public/embeds/`. Details: `/docs` → entries, `/skills/blog/SKILL.md`.
 
 ## API (one service layer)
 | Surface | Path |
