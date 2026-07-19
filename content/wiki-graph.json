@@ -1,0 +1,13 @@
+{
+  "nodes": [
+    { "id": "index", "title": "Wiki index", "type": "hub" },
+    { "id": "presence-framework", "title": "Presence Framework", "type": "entity" },
+    { "id": "alex-rivera", "title": "Alex Rivera", "type": "entity" }
+  ],
+  "edges": [
+    { "source": "index", "target": "presence-framework" },
+    { "source": "index", "target": "alex-rivera" },
+    { "source": "presence-framework", "target": "alex-rivera" },
+    { "source": "alex-rivera", "target": "presence-framework" }
+  ]
+}

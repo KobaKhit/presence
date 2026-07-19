@@ -1,0 +1,22 @@
+{
+  "name": "create-presence",
+  "version": "0.1.0",
+  "description": "Scaffold a Presence personal site (Next.js + LLM Wiki)",
+  "bin": {
+    "create-presence": "./bin/create-presence.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "presence",
+    "nextjs",
+    "wiki",
+    "scaffolder"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}

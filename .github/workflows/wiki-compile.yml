@@ -1,0 +1,97 @@
+﻿name: Presence wiki compile
+
+# Compiles the wiki graph (and optionally LLM synthesis) then opens/updates a PR.
+# Human-in-the-loop: never push wiki changes straight to main.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "content/sources/**"
+  schedule:
+    # Mondays 14:00 UTC — catch drift without source pushes
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+    inputs:
+      use_llm:
+        description: "Run LLM synthesis when OPENROUTER_API_KEY / OPENAI_API_KEY secret is set"
+        type: boolean
+        default: false
+      force:
+        description: "Blind overwrite wiki pages (--force)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: wiki-compile
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Compile wiki (graph + optional LLM)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+          OPENROUTER_EMBEDDING_MODEL: ${{ vars.OPENROUTER_EMBEDDING_MODEL }}
+        run: |
+          EXTRA=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.use_llm }}" = "true" ]; then
+            if [ -n "$OPENROUTER_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
+              echo "LLM synthesis enabled"
+              if [ "${{ inputs.force }}" = "true" ]; then
+                EXTRA="--force"
+              fi
+            else
+              echo "use_llm requested but no API key secret — graph-only"
+              EXTRA="--no-llm"
+            fi
+          else
+            # Default / schedule / source push: graph-only unless a key is present and
+            # repo var PRESENCE_CI_LLM=true or PERSONA_CI_LLM=true is set (opt-in spend).
+            if { [ "${{ vars.PRESENCE_CI_LLM }}" = "true" ] || [ "${{ vars.PERSONA_CI_LLM }}" = "true" ]; } && { [ -n "$OPENROUTER_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; }; then
+              echo "CI LLM opt-in — running LLM synthesis"
+            else
+              EXTRA="--no-llm"
+            fi
+          fi
+          npm run presence -- compile $EXTRA --no-reindex
+
+      - name: Doctor report
+        run: npm run presence -- doctor
+
+      - name: Open or update PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(wiki): compile from sources"
+          title: "chore(wiki): compile from sources"
+          body: |
+            Automated wiki maintenance from `content/sources` changes (or schedule/manual).
+
+            - Rebuilds `content/wiki-graph.json` from `[[wiki-links]]`
+            - LLM page synthesis runs only when secrets + opt-in (`PRESENCE_CI_LLM` / `PERSONA_CI_LLM` or workflow `use_llm`) are set
+            - Review wiki markdown before merge — human-in-the-loop on knowledge
+
+            Trigger: `${{ github.event_name }}`
+          branch: chore/wiki-compile
+          delete-branch: true
+          add-paths: |
+            content/wiki/**
+            content/wiki-graph.json

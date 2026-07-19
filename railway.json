@@ -1,0 +1,7 @@
+services:
+  web:
+    build: .
+    startCommand: npm run start
+    envVars:
+      - key: OPENAI_API_KEY
+        optional: true
