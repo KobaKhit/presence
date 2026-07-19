@@ -1,6 +1,12 @@
 import fs from "fs/promises";
 import path from "path";
-import { extractWikiLinks, parseMarkdown, renderWikiLinks } from "./markdown";
+import matter from "gray-matter";
+import {
+  extractWikiLinks,
+  parseMarkdown,
+  renderWikiLinks,
+  stripDuplicateTitleH1,
+} from "./markdown";
 import { getEntries, getEntry, type Entry } from "./entries";
 
 const CONTENT_ROOT = path.join(process.cwd(), "content");
@@ -155,10 +161,16 @@ export async function getWikiPages(): Promise<WikiPage[]> {
   for (const file of files) {
     const raw = await fs.readFile(path.join(dir, file), "utf-8");
     const slug = file.replace(/\.md$/, "");
-    const withLinks = renderWikiLinks(raw);
+    // Peek title from frontmatter before HTML render so we can drop duplicate H1
+    const { data: fmPeek, content: bodyPeek } = matter(raw);
+    const titlePeek = (fmPeek as WikiFrontmatter).title ?? slug;
+    const bodyForRender = stripDuplicateTitleH1(bodyPeek, titlePeek);
+    const fmBlock = raw.match(/^---[\s\S]*?---\n?/);
+    const rawForRender = `${fmBlock ? fmBlock[0] : ""}${bodyForRender}`;
+    const withLinks = renderWikiLinks(rawForRender);
     const parsed = await parseMarkdown<WikiFrontmatter>(withLinks, slug);
     const links = extractWikiLinks(parsed.content);
-    const originalLinks = extractWikiLinks(raw.replace(/^---[\s\S]*?---\n/, ""));
+    const originalLinks = extractWikiLinks(bodyPeek);
     pages.push({
       slug,
       title: parsed.frontmatter.title ?? slug,

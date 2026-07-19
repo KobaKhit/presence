@@ -12,5 +12,5 @@ export {
   type ResolvedLlm,
   type LlmStatus,
 } from "./provider";
-export { synthesizeWikiFromSources, type SynthesizeOptions, type SynthesizeResult } from "./synthesize";
+export { synthesizeWikiFromSources, sanitizeWikiSourceCitations, type SynthesizeOptions, type SynthesizeResult } from "./synthesize";
 export { proposeWikiPageFromChat, type WikiPageProposal } from "./propose";

@@ -2,6 +2,12 @@ import fs from "fs/promises";
 import path from "path";
 import matter from "gray-matter";
 import { llmGenerateText, resolveLlm } from "./provider";
+import {
+  buildSourceIndex,
+  filterSourceRefs,
+  isSignificantEntity,
+  type SourceIndex,
+} from "../content/citations";
 
 export interface SynthesizeOptions {
   /** Blind overwrite existing pages. Default false — prefer incremental merge. */
@@ -22,6 +28,8 @@ export interface SynthesizeResult {
   skipped: string[];
   contradictions: { page: string; notes: string[] }[];
   errors: string[];
+  /** Source refs stripped because they were not in the corpus index. */
+  strippedSources?: { page: string; sources: string[] }[];
 }
 
 interface ExtractedEntity {
@@ -104,20 +112,39 @@ function repairFrontmatterDelimiters(markdown: string): string {
   return `---\n${rest.trim()}\n---\n`;
 }
 
+function sanitizeEntitySources(
+  entity: ExtractedEntity,
+  index: SourceIndex,
+  log: { page: string; sources: string[] }[],
+): ExtractedEntity {
+  const { valid, unknown } = filterSourceRefs(index, entity.sourceRefs);
+  if (unknown.length) {
+    log.push({ page: entity.slug, sources: unknown });
+    console.warn(
+      `[synthesize] stripped unknown sources for ${entity.slug}: ${unknown.join(", ")}`,
+    );
+  }
+  return { ...entity, sourceRefs: valid };
+}
+
 function ensureFrontmatter(
   markdown: string,
   entity: ExtractedEntity,
   today: string,
   contradictions: string[],
+  index: SourceIndex,
+  strippedLog: { page: string; sources: string[] }[],
 ): string {
   let body = repairFrontmatterDelimiters(markdown);
+  const safeEntity = sanitizeEntitySources(entity, index, strippedLog);
+
   if (!body.startsWith("---")) {
     body = `---
-title: "${entity.title.replace(/"/g, '\\"')}"
-summary: "${(entity.summary || entity.title).replace(/"/g, '\\"')}"
-type: ${entity.type}
+title: "${safeEntity.title.replace(/"/g, '\\"')}"
+summary: "${(safeEntity.summary || safeEntity.title).replace(/"/g, '\\"')}"
+type: ${safeEntity.type}
 sources:
-${entity.sourceRefs.map((s) => `  - ${s}`).join("\n") || "  []"}
+${safeEntity.sourceRefs.map((s) => `  - ${s}`).join("\n") || "  []"}
 updated: "${today}"
 ${contradictions.length ? `contradictions:\n${contradictions.map((c) => `  - ${JSON.stringify(c)}`).join("\n")}\n` : ""}---
 
@@ -128,12 +155,21 @@ ${body}
 
   try {
     const parsed = matter(body);
-    parsed.data.title = parsed.data.title ?? entity.title;
-    parsed.data.summary = parsed.data.summary ?? entity.summary;
-    parsed.data.type = parsed.data.type ?? entity.type;
+    parsed.data.title = parsed.data.title ?? safeEntity.title;
+    parsed.data.summary = parsed.data.summary ?? safeEntity.summary;
+    parsed.data.type = parsed.data.type ?? safeEntity.type;
     parsed.data.updated = today;
-    const prevSources = Array.isArray(parsed.data.sources) ? parsed.data.sources : [];
-    parsed.data.sources = [...new Set([...prevSources, ...entity.sourceRefs])];
+    const prevSources = Array.isArray(parsed.data.sources)
+      ? (parsed.data.sources as string[])
+      : [];
+    const merged = filterSourceRefs(index, [...prevSources, ...safeEntity.sourceRefs]);
+    if (merged.unknown.length) {
+      strippedLog.push({ page: safeEntity.slug, sources: merged.unknown });
+      console.warn(
+        `[synthesize] stripped unknown sources for ${safeEntity.slug}: ${merged.unknown.join(", ")}`,
+      );
+    }
+    parsed.data.sources = merged.valid;
     if (contradictions.length) {
       const prev = Array.isArray(parsed.data.contradictions)
         ? (parsed.data.contradictions as string[])
@@ -146,32 +182,42 @@ ${body}
     // Last resort: rebuild frontmatter from entity metadata
     const contentOnly = body.replace(/^---[\s\S]*?\n---\s*/, "").trimStart();
     body = `---
-title: "${entity.title.replace(/"/g, '\\"')}"
-summary: "${(entity.summary || entity.title).replace(/"/g, '\\"')}"
-type: ${entity.type}
+title: "${safeEntity.title.replace(/"/g, '\\"')}"
+summary: "${(safeEntity.summary || safeEntity.title).replace(/"/g, '\\"')}"
+type: ${safeEntity.type}
 sources:
-${entity.sourceRefs.map((s) => `  - ${s}`).join("\n") || "  []"}
+${safeEntity.sourceRefs.map((s) => `  - ${s}`).join("\n") || "  []"}
 updated: "${today}"
 ${contradictions.length ? `contradictions:\n${contradictions.map((c) => `  - ${JSON.stringify(c)}`).join("\n")}\n` : ""}---
 
-${contentOnly || `# ${entity.title}\n`}
+${contentOnly || `## Overview\n`}
 `;
     return body.endsWith("\n") ? body : `${body}\n`;
   }
+}
+
+function knownCitationList(index: SourceIndex): string {
+  const prefs = [...index.canonicalBySlug.values()].sort();
+  return prefs.slice(0, 80).join(", ") || "(none)";
 }
 
 async function generateNewPage(
   entity: ExtractedEntity,
   corpus: string,
   existingSlugs: string[],
+  index: SourceIndex,
 ): Promise<string | null> {
+  const allowed = knownCitationList(index);
   const page = await llmGenerateText({
     system: `Write one dense wiki page in markdown for a personal LLM Wiki.
 Rules:
 - Start with YAML frontmatter: title, summary, type, sources (list), updated (YYYY-MM-DD)
-- Body: H1 matching title, 2–4 short sections, dense [[wiki-links]] to related concepts using kebab-case slugs
-- Cite source paths from sourceRefs; do not invent facts beyond the corpus
-- If sources disagree, add a "## Views that evolved" section with bullet notes
+- Body: do NOT start with a duplicate H1 matching the title — the site header already shows the title. Start sections at H2 (##).
+- 2–4 short sections, dense [[wiki-links]] to related concepts using kebab-case slugs
+- Frame the page around what the author did with / how they used this topic — not a Wikipedia-style generic definition
+- sources: ONLY cite paths from entity.sourceRefs / this allowlist: ${allowed}
+- Never invent blog/, projects/, or visuals/ paths that are not in the allowlist
+- "## Views that evolved" ONLY for real disagreements between real cited sources — never invent career narratives from unrelated posts
 - No code fences around the whole document`,
     prompt: `Entity: ${JSON.stringify(entity)}
 
@@ -189,7 +235,9 @@ async function incrementalUpdatePage(
   existingMarkdown: string,
   corpus: string,
   existingSlugs: string[],
+  index: SourceIndex,
 ): Promise<IncrementalPayload | null> {
+  const allowed = knownCitationList(index);
   const result = await llmGenerateText({
     system: `You maintain an existing LLM Wiki page. Sources are immutable; update the wiki incrementally.
 Return ONLY JSON:
@@ -201,9 +249,11 @@ Return ONLY JSON:
 Rules for markdown when changed:
 - Preserve stable [[wiki-links]] and structure where possible; merge new facts from sources
 - Keep frontmatter fields: title, summary, type, sources, updated, contradictions (if any)
-- Add or refresh "## Views that evolved" when contradictions exist
-- Do not invent facts; cite source paths
-- Prefer surgical updates over full rewrite unless the page is clearly stale`,
+- Body must NOT open with a duplicate H1 matching title — sections start at H2
+- Frame updates around the author's work with this topic, not generic encyclopedia prose
+- Add or refresh "## Views that evolved" ONLY when real cited sources disagree — never invent narratives
+- sources: ONLY paths from entity.sourceRefs / allowlist: ${allowed}
+- Do not invent blog/project/visual paths; do not invent facts`,
     prompt: `Entity: ${JSON.stringify(entity)}
 
 Current page:
@@ -268,7 +318,11 @@ export async function synthesizeWikiFromSources(
     skipped: [],
     contradictions: [],
     errors: [],
+    strippedSources: [],
   };
+
+  const sourceIndex = await buildSourceIndex(contentRoot);
+  const strippedLog = result.strippedSources!;
 
   const corpus = await loadSourceCorpus(sourcesRoot);
   if (!corpus.trim()) {
@@ -285,10 +339,19 @@ export async function synthesizeWikiFromSources(
     await fs.mkdir(wikiRoot, { recursive: true });
   }
 
+  const allowed = knownCitationList(sourceIndex);
   const extract = await llmGenerateText({
     system: `You maintain an LLM Wiki for a personal site. Sources are immutable.
 Extract the most important entities/concepts that deserve dedicated wiki pages.
-Return ONLY JSON: { "entities": [ { "slug": "kebab-case", "title": "...", "type": "concept"|"entity"|"hub", "summary": "one sentence", "sourceRefs": ["entries/slug"] } ] }
+Return ONLY JSON: { "entities": [ { "slug": "kebab-case", "title": "...", "type": "concept"|"entity"|"hub", "summary": "one sentence about the author's relationship to this topic", "sourceRefs": ["blog/slug-or-projects/slug"] } ] }
+
+Significance rules (STRICT):
+- Only include entities mentioned in ≥2 distinct sources, OR clearly tied to the site owner's own work (a real project/post/visual), OR identity/career hubs
+- Skip noise naming-convention / trivia entities (e.g. "Kebab Case") unless ≥2 sources AND tied to the author's work
+- Prefer framing "what the author did with X" over Wikipedia-style generic definitions
+- sourceRefs: ONLY cite paths from this allowlist: ${allowed}
+- Never invent blog/, projects/, or visuals/ paths
+
 Prefer 4–${maxPages} high-value entities. Reuse existing slugs when they match: ${existing.join(", ") || "(none)"}.
 Also include entities that may need contradiction review when sources span years.`,
     prompt: `Corpus:\n\n${corpus.slice(0, 60000)}`,
@@ -307,14 +370,31 @@ Also include entities that may need contradiction review when sources span years
       .map((e) => {
         const type: ExtractedEntity["type"] =
           e.type === "hub" || e.type === "entity" ? e.type : "concept";
+        const { valid, unknown } = filterSourceRefs(
+          sourceIndex,
+          Array.isArray(e.sourceRefs) ? e.sourceRefs : [],
+        );
+        if (unknown.length) {
+          strippedLog.push({ page: slugify(e.slug || e.title), sources: unknown });
+          console.warn(
+            `[synthesize] dropped invented sourceRefs for ${e.slug || e.title}: ${unknown.join(", ")}`,
+          );
+        }
         return {
           ...e,
           slug: slugify(e.slug || e.title),
           type,
-          sourceRefs: Array.isArray(e.sourceRefs) ? e.sourceRefs : [],
+          sourceRefs: valid,
         };
       })
       .filter((e) => e.slug && e.title)
+      .filter((e) => {
+        if (isSignificantEntity(e, sourceIndex)) return true;
+        console.warn(
+          `[synthesize] skipped insignificant entity: ${e.slug} (${e.sourceRefs.length} valid sourceRefs)`,
+        );
+        return false;
+      })
       .slice(0, maxPages);
   } catch (err) {
     result.errors.push(
@@ -335,60 +415,88 @@ Also include entities that may need contradiction review when sources span years
   for (const entity of entities) {
     const file = path.join(wikiRoot, `${entity.slug}.md`);
     const exists = existing.includes(entity.slug);
+    const safeEntity = sanitizeEntitySources(entity, sourceIndex, strippedLog);
 
     try {
       if (!exists || force) {
-        const markdown = await generateNewPage(entity, corpus, linkSlugs);
+        const markdown = await generateNewPage(safeEntity, corpus, linkSlugs, sourceIndex);
         if (!markdown) {
-          result.errors.push(`No text for ${entity.slug}`);
+          result.errors.push(`No text for ${safeEntity.slug}`);
           continue;
         }
-        const finalMd = ensureFrontmatter(markdown, entity, today, []);
+        const finalMd = ensureFrontmatter(
+          markdown,
+          safeEntity,
+          today,
+          [],
+          sourceIndex,
+          strippedLog,
+        );
         await fs.writeFile(file, finalMd, "utf-8");
-        result.written.push(entity.slug);
-        if (!existing.includes(entity.slug)) existing.push(entity.slug);
+        result.written.push(safeEntity.slug);
+        if (!existing.includes(safeEntity.slug)) existing.push(safeEntity.slug);
         continue;
       }
 
       if (createOnly) {
-        result.skipped.push(entity.slug);
+        result.skipped.push(safeEntity.slug);
         continue;
       }
 
       // Incremental merge for existing pages
       const current = await fs.readFile(file, "utf-8");
-      const inc = await incrementalUpdatePage(entity, current, corpus, linkSlugs);
+      const inc = await incrementalUpdatePage(
+        safeEntity,
+        current,
+        corpus,
+        linkSlugs,
+        sourceIndex,
+      );
       if (!inc) {
-        result.errors.push(`Incremental update failed for ${entity.slug}`);
-        result.skipped.push(entity.slug);
+        result.errors.push(`Incremental update failed for ${safeEntity.slug}`);
+        result.skipped.push(safeEntity.slug);
         continue;
       }
 
       if (inc.contradictions.length) {
-        result.contradictions.push({ page: entity.slug, notes: inc.contradictions });
+        result.contradictions.push({ page: safeEntity.slug, notes: inc.contradictions });
       }
 
       if (!inc.changed && inc.contradictions.length === 0) {
-        result.skipped.push(entity.slug);
+        result.skipped.push(safeEntity.slug);
         continue;
       }
 
       if (inc.changed && inc.markdown) {
-        const finalMd = ensureFrontmatter(inc.markdown, entity, today, inc.contradictions);
+        const finalMd = ensureFrontmatter(
+          inc.markdown,
+          safeEntity,
+          today,
+          inc.contradictions,
+          sourceIndex,
+          strippedLog,
+        );
         await fs.writeFile(file, finalMd, "utf-8");
-        result.updated.push(entity.slug);
+        result.updated.push(safeEntity.slug);
       } else if (inc.contradictions.length) {
         // Only contradictions changed — patch frontmatter / section on existing page
-        const finalMd = ensureFrontmatter(current, entity, today, inc.contradictions);
+        const finalMd = ensureFrontmatter(
+          current,
+          safeEntity,
+          today,
+          inc.contradictions,
+          sourceIndex,
+          strippedLog,
+        );
         const withSection = appendEvolvedSection(finalMd, inc.contradictions);
         await fs.writeFile(file, withSection, "utf-8");
-        result.updated.push(entity.slug);
+        result.updated.push(safeEntity.slug);
       } else {
-        result.skipped.push(entity.slug);
+        result.skipped.push(safeEntity.slug);
       }
     } catch (err) {
       result.errors.push(
-        `${entity.slug}: ${err instanceof Error ? err.message : String(err)}`,
+        `${safeEntity.slug}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -403,4 +511,46 @@ function appendEvolvedSection(markdown: string, notes: string[]): string {
   }
   const section = `\n## Views that evolved\n\n${notes.map((n) => `- ${n}`).join("\n")}\n`;
   return markdown.endsWith("\n") ? `${markdown}${section}` : `${markdown}\n${section}`;
+}
+
+/**
+ * Walk existing wiki pages and strip unknown `sources:` citations from disk.
+ * Used by compile/doctor so fabricated refs do not linger.
+ */
+export async function sanitizeWikiSourceCitations(
+  contentRoot = path.join(process.cwd(), "content"),
+): Promise<{ page: string; stripped: string[] }[]> {
+  const wikiRoot = path.join(contentRoot, "wiki");
+  const index = await buildSourceIndex(contentRoot);
+  const changes: { page: string; stripped: string[] }[] = [];
+
+  let files: string[];
+  try {
+    files = (await fs.readdir(wikiRoot)).filter((f) => f.endsWith(".md"));
+  } catch {
+    return changes;
+  }
+
+  for (const file of files) {
+    const abs = path.join(wikiRoot, file);
+    const raw = await fs.readFile(abs, "utf-8");
+    let parsed;
+    try {
+      parsed = matter(raw);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(parsed.data.sources)) continue;
+    const { valid, unknown } = filterSourceRefs(index, parsed.data.sources as string[]);
+    if (!unknown.length) continue;
+    parsed.data.sources = valid;
+    const out = matter.stringify(parsed.content.trimStart(), parsed.data);
+    await fs.writeFile(abs, out.endsWith("\n") ? out : `${out}\n`, "utf-8");
+    changes.push({ page: file.replace(/\.md$/, ""), stripped: unknown });
+    console.warn(
+      `[citations] stripped unknown sources on ${file}: ${unknown.join(", ")}`,
+    );
+  }
+
+  return changes;
 }

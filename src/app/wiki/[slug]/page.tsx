@@ -52,7 +52,7 @@ export default async function WikiPageView({
               href={`/wiki/${link}`}
               className="rounded-full bg-white/70 px-3 py-1 text-xs text-accent ring-1 ring-line hover:bg-accent/10"
             >
-              [[{link}]]
+              {link}
             </Link>
           ))}
         </div>

@@ -11,9 +11,15 @@ import { loadPresenceEnv } from "../src/lib/llm/env";
 import {
   describeLlmForHumans,
   getLlmStatus,
+  sanitizeWikiSourceCitations,
   synthesizeWikiFromSources,
 } from "../src/lib/llm";
 import { reindexEmbeddings } from "../src/lib/knowledge/reindex";
+import {
+  buildSourceIndex,
+  findUnknownCitations,
+} from "../src/lib/content/citations";
+import { extractWikiLinks as extractWikiLinksShared } from "../src/lib/content/markdown";
 
 loadPresenceEnv();
 
@@ -24,14 +30,7 @@ const SOURCES = path.join(CONTENT, "sources");
 const GRAPH = path.join(CONTENT, "wiki-graph.json");
 
 function extractWikiLinks(content: string): string[] {
-  const links = new Set<string>();
-  const re = /\[\[([^\]]+)\]\]/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(content)) !== null) {
-    const target = match[1].split("|")[0].trim().toLowerCase().replace(/\s+/g, "-");
-    if (target) links.add(target);
-  }
-  return [...links];
+  return extractWikiLinksShared(content);
 }
 
 async function listMd(dir: string): Promise<string[]> {
@@ -56,6 +55,7 @@ async function loadWikiPages() {
       type: (data.type as string) ?? "concept",
       links: extractWikiLinks(content),
       content,
+      sources: Array.isArray(data.sources) ? (data.sources as string[]) : [],
       contradictions: Array.isArray(data.contradictions)
         ? (data.contradictions as string[])
         : [],
@@ -126,12 +126,27 @@ async function doctor() {
     .map((p) => p.slug);
   const contradictions = collectContradictionNotes(pages);
 
+  const sourceIndex = await buildSourceIndex(CONTENT);
+  const unknownCitations = findUnknownCitations(pages, sourceIndex);
+
   console.log(`Pages: ${pages.length}`);
   console.log(`Links: ${linkCount}`);
   console.log(`Orphans: ${orphans.length ? orphans.join(", ") : "(none)"}`);
   console.log(
     `Missing targets: ${missing.length ? missing.map((m) => `${m.from}→${m.to}`).join(", ") : "(none)"}`,
   );
+  console.log(
+    `Unknown citations: ${
+      unknownCitations.length
+        ? unknownCitations.map((c) => `${c.page}→${c.source}`).join(", ")
+        : "(none)"
+    }`,
+  );
+  if (unknownCitations.length) {
+    console.error(
+      `ERROR: ${unknownCitations.length} unknown source citation(s) — run compile to strip, or fix wiki frontmatter.`,
+    );
+  }
   console.log(
     `Contradictions: ${
       contradictions.length
@@ -144,6 +159,7 @@ async function doctor() {
     linkCount,
     orphans,
     missingTargets: missing,
+    unknownCitations,
     contradictions,
   };
 }
@@ -229,6 +245,13 @@ async function compile(opts: {
     );
   }
 
+  const scrubbed = await sanitizeWikiSourceCitations(CONTENT);
+  if (scrubbed.length) {
+    console.log(
+      `Stripped unknown citations on: ${scrubbed.map((s) => `${s.page}(${s.stripped.length})`).join(", ")}`,
+    );
+  }
+
   const pages = await writeGraphIndex();
   await doctor();
 
@@ -303,7 +326,7 @@ program
   });
 program
   .command("doctor")
-  .description("Report orphans, missing links, contradictions, LLM status")
+  .description("Report orphans, missing links, unknown citations, contradictions, LLM status")
   .action(async () => {
     await doctor();
   });

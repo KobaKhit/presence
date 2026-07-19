@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "presence",
   "version": "0.1.0",
   "private": true,
@@ -10,7 +10,8 @@
     "lint": "eslint",
     "presence": "tsx scripts/presence.ts",
     "persona": "tsx scripts/presence.ts",
-    "create-presence": "node packages/create-presence/bin/create-presence.js"
+    "create-presence": "node packages/create-presence/bin/create-presence.js",
+    "test": "vitest run"
   },
   "optionalDependencies": {
     "pg": "^8.16.3"
@@ -51,6 +52,7 @@
     "eslint-config-next": "15.5.20",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }
