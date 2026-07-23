@@ -326,17 +326,50 @@ a {
 }
 
 .blog-prose .prose-presence {
-  font-size: 1.125rem;
-  line-height: 1.85;
+  font-family: var(--font-syne), Georgia, serif;
+  font-size: 1.1875rem;
+  line-height: 1.82;
+  letter-spacing: -0.006em;
+}
+
+.blog-prose .prose-presence h1,
+.blog-prose .prose-presence h2,
+.blog-prose .prose-presence h3,
+.blog-prose .prose-presence h4 {
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  letter-spacing: -0.035em;
+}
+
+.blog-prose .prose-presence h2 {
+  margin-top: 2.6em;
+  padding-top: 0.35em;
+  font-size: 1.75rem;
+}
+
+.blog-prose .prose-presence p:first-of-type::first-letter {
+  float: left;
+  margin: 0.08em 0.12em 0 0;
+  color: var(--accent);
+  font-family: var(--font-syne), Georgia, serif;
+  font-size: 3.5em;
+  font-weight: 600;
+  line-height: 0.78;
+}
+
+.blog-prose .prose-presence code,
+.blog-prose .prose-presence pre,
+.blog-prose .prose-presence table {
+  font-family: var(--font-jetbrains), monospace;
+  letter-spacing: normal;
 }
 
 @media (min-width: 768px) {
   .blog-prose .prose-presence {
-    font-size: 1.1875rem;
+    font-size: 1.25rem;
   }
 
   .blog-prose .prose-presence h2 {
-    font-size: 1.6rem;
+    font-size: 2rem;
   }
 }
 

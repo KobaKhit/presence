@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
+import { DM_Sans, IBM_Plex_Mono, Newsreader } from "next/font/google";
 import { FloatingChat } from "@/components/floating-chat";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -9,18 +9,18 @@ import { resolveThemeConfig } from "@/lib/config/themes";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
-const syne = Syne({
+const newsreader = Newsreader({
   variable: "--font-syne",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const manrope = Manrope({
+const dmSans = DM_Sans({
   variable: "--font-manrope",
   subsets: ["latin"],
 });
 
-const jetbrains = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-jetbrains",
   subsets: ["latin"],
   weight: ["400", "500"],
@@ -49,7 +49,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme={themeConfig.defaultTheme} suppressHydrationWarning>
       <body
-        className={`${syne.variable} ${manrope.variable} ${jetbrains.variable} antialiased`}
+        className={`${newsreader.variable} ${dmSans.variable} ${ibmPlexMono.variable} antialiased`}
       >
         <ThemeProvider
           defaultTheme={themeConfig.defaultTheme}

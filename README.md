@@ -1,5 +1,7 @@
 # Presence
 
+[![Test coverage](https://codecov.io/gh/KobaKhit/presence/branch/main/graph/badge.svg)](https://codecov.io/gh/KobaKhit/presence)
+
 Open-source **Next.js personal site framework** where the site is the front door, the API is a contract, and a compiled LLM Wiki powers search, chat, and MCP.
 
 > Use this repo as a **GitHub Template** → edit `content/` → deploy. Zero-config boot (SQLite vectors, no cloud DB required).
