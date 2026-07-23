@@ -95,8 +95,7 @@ export default function SetupPage() {
       </div>
 
       <p className="mt-8 text-sm text-muted">
-        Next: explore the <Link href="/wiki" className="text-accent hover:underline">wiki</Link> or{" "}
-        <Link href="/chat" className="text-accent hover:underline">chat</Link>.
+        Next: explore the <Link href="/wiki" className="text-accent hover:underline">wiki</Link> or open the floating agent.
       </p>
     </div>
   );

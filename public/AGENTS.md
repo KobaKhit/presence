@@ -1,38 +1,43 @@
-# Agent guide — Presence personal site
+# AGENTS.md
 
-You are working with a **Presence** site: Next.js App Router + a compiled LLM Wiki.
+Canonical copy also served at `/AGENTS.md` (see `public/AGENTS.md`).
 
-## Read first
-1. `/llms.txt` — machine map of endpoints and skills
-2. `/openapi.json` — stable API contract (prefer this over scraping HTML)
-3. `content/presence.config.ts` — identity and module toggles
-4. This file and `/skills/*/SKILL.md`
-5. `/docs` — operator guides (knowledge, vectors, deploy, agents)
+You are helping maintain a **Presence** site — Next.js personal platform with an LLM Wiki knowledge layer.
 
-## Content rules
-- `content/sources/**` is **immutable intake**. Do not rewrite history; add new sources.
-- `content/wiki/**` is the **compiled** knowledge base. Densely `[[wiki-link]]` pages. Cite sources in frontmatter.
-- After wiki edits, run `npm run presence -- compile` (or POST `/api/v1/admin/compile`) to refresh `content/wiki-graph.json`.
-- Contradictions belong in wiki frontmatter / “Views that evolved” — not by rewriting sources.
-- **Packaging:** entries with local interactive assets (Folium, plots, DataTables, custom HTML) live in `content/sources/entries/{slug}/` as `index.md` + siblings (commonly `embeds/`). Reference with `/entries/{slug}/…`. Do not put post-specific widgets in `public/embeds/`. Details: `/docs` → entries, `/skills/blog/SKILL.md`.
+## Quick map
+- Identity: `content/presence.config.ts`
+- Sources (immutable): `content/sources/`
+- Wiki (compiled): `content/wiki/`
+- Graph index: `content/wiki-graph.json`
+- API contract: `/openapi.json`
+- Machine index: `/llms.txt`
+- Skills: `/skills/*/SKILL.md`
 
-## API (one service layer)
-| Surface | Path |
-|---|---|
-| REST | `/api/v1/{presence,blog,projects,resume,wiki,search,chat}` |
-| Wiki save-back | `POST /api/v1/wiki/propose`, `POST /api/v1/wiki/save` |
-| Agent SSE | `/api/agent` |
-| MCP | `/api/mcp` |
-| Spec | `/openapi.json` |
+## Commands
+```bash
+npm run dev
+npm run presence -- compile
+npm run presence -- doctor
+npm run presence -- reindex
+npm run presence -- ingest <url-or-file>
+node packages/create-presence/bin/create-presence.js my-site
+```
+
+`npm run persona` is an alias for `npm run presence`.
 
 ## LLM
-Prefer `OPENROUTER_API_KEY` (OpenAI-compatible). Fall back to `OPENAI_API_KEY`. Without keys, chat is extractive and compile is graph-only. Local/Ollama mode is not supported.
+Prefer `OPENROUTER_API_KEY` (OpenAI-compatible at `https://openrouter.ai/api/v1`). Fall back to `OPENAI_API_KEY`. Selection lives in `src/lib/llm/`. Without keys, chat/compile stay extractive/graph-only.
 
-## Building alternate UIs
-Consume JSON from `/api/v1/*`. Do not depend on CSS class names from the reference theme. The default UI is a theme, not a cage.
+## Vectors
+Default persistent store: `data/vectors.sqlite` (SQLite). Optional Postgres/pgvector via `DATABASE_URL` + `npm install pg` — see `docs/vector-store.md`.
 
-## Knowledge retrieval
-Prefer wiki pages for multi-hop questions. Use `GET /api/v1/search?q=` (lexical + persisted vectors + graph expand). Pass wiki context before raw source chunks when answering.
-
-## Safety
-Never compile on every page request. Compilation is explicit (CLI, admin button, or CI). Rate-limit chat/MCP in production.
+## Rules
+1. Prefer `/api/v1` over scraping.
+2. Do not edit sources to “fix” wiki — update wiki or add a new source.
+3. After wiki changes, recompile the graph (`presence compile` / `--no-llm`).
+4. Keep Zod schemas in sync when adding routes.
+5. Do not invent a published template URL — set `deploy.templateRepoUrl` only when real.
+6. Entry packaging: posts/projects/visuals with local interactives (maps, plots, widgets) use a **folder** under `content/sources/entries/{slug}/` with `index.md` + sibling assets (e.g. `embeds/`). Serve via `/entries/{slug}/…`. Do not dump post-specific HTML into `public/embeds/`. See `docs/entries.md` and `/skills/blog/SKILL.md`.
+7. Visitor chat is the floating agent only (no Chat nav tab). Navigation actions must be allowlisted internal routes; confirm-first by default.
+8. Themes live in `content/presence.config.ts` (`theme.presets`); do not hardcode colors only in CSS.
+9. Publishing contracts (`src/lib/publishing`) stay filesystem in OSS; see `docs/paid-platform.md` for hosted seams. Write routes use shared `assertAdmin` (fail-closed in production).

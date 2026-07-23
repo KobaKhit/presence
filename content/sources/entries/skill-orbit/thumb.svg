@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#0b1220"/>
+  <circle cx="320" cy="180" r="28" fill="#38bdf8"/>
+  <circle cx="320" cy="180" r="110" fill="none" stroke="#7dd3fc" stroke-width="2" opacity="0.5"/>
+  <circle cx="430" cy="140" r="10" fill="#7dd3fc"/>
+  <circle cx="220" cy="120" r="10" fill="#f472b6"/>
+  <circle cx="250" cy="250" r="10" fill="#14b8a6"/>
+  <text x="40" y="48" fill="#e2e8f0" font-family="ui-sans-serif, system-ui" font-size="28" font-weight="700">Skill Orbit</text>
+</svg>

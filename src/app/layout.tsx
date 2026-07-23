@@ -3,7 +3,9 @@ import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
 import { FloatingChat } from "@/components/floating-chat";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { ThemeProvider } from "@/components/theme-provider";
 import { getPresenceConfig } from "@/lib/config";
+import { resolveThemeConfig } from "@/lib/config/themes";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
@@ -25,6 +27,11 @@ const jetbrains = JetBrains_Mono({
 });
 
 const config = getPresenceConfig();
+const themeConfig = resolveThemeConfig(config);
+const themePresets = Object.entries(themeConfig.presets).map(([id, preset]) => ({
+  id,
+  ...preset,
+}));
 
 export const metadata: Metadata = {
   title: {
@@ -40,16 +47,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme={themeConfig.defaultTheme} suppressHydrationWarning>
       <body
         className={`${syne.variable} ${manrope.variable} ${jetbrains.variable} antialiased`}
       >
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
-        </div>
-        <FloatingChat />
+        <ThemeProvider
+          defaultTheme={themeConfig.defaultTheme}
+          presets={themePresets}
+        >
+          <div className="relative z-10 flex min-h-screen flex-col">
+            <SiteHeader />
+            <main className="flex-1">{children}</main>
+            <SiteFooter />
+          </div>
+          <FloatingChat
+            siteName={config.name}
+            enabled={config.modules.chat}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );

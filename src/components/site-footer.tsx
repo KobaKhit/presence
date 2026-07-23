@@ -7,7 +7,7 @@ export function SiteFooter() {
 
   return (
     <>
-      <footer className="relative z-10 mt-24 border-t border-line/80 bg-white/30">
+      <footer className="relative z-10 mt-24 border-t border-line/80 bg-surface/40">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 text-sm text-muted md:flex-row md:items-center md:justify-between md:px-8">
           <div>
             <p className="font-[family-name:var(--font-syne)] text-base text-ink">

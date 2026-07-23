@@ -38,17 +38,30 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-rise,
+  .animate-rise-delay,
+  .animate-fade {
+    animation: none !important;
+  }
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
   font-family: var(--font-manrope), system-ui, sans-serif;
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(20, 184, 166, 0.16), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(196, 92, 38, 0.1), transparent 50%),
-    radial-gradient(800px 400px at 50% 100%, rgba(15, 118, 110, 0.08), transparent 45%),
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--accent-bright) 22%, transparent), transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, color-mix(in srgb, var(--accent-warm) 14%, transparent), transparent 50%),
+    radial-gradient(800px 400px at 50% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 45%),
     linear-gradient(180deg, var(--paper) 0%, var(--paper-deep) 100%);
   background-attachment: fixed;
+  transition: background 0.35s ease, color 0.2s ease;
 }
 
 body::before {
@@ -58,8 +71,8 @@ body::before {
   inset: 0;
   opacity: 0.35;
   background-image:
-    linear-gradient(rgba(13, 27, 42, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(13, 27, 42, 0.03) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
   z-index: 0;
@@ -71,7 +84,30 @@ a {
 }
 
 ::selection {
-  background: rgba(20, 184, 166, 0.28);
+  background: color-mix(in srgb, var(--accent-bright) 35%, transparent);
+}
+
+.presence-card {
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+.presence-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  padding: 0.25rem 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .prose-presence {
@@ -139,7 +175,7 @@ a {
 .prose-presence code {
   font-family: var(--font-jetbrains), monospace;
   font-size: 0.88em;
-  background: rgba(15, 118, 110, 0.1);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   padding: 0.15em 0.4em;
   border-radius: 5px;
   color: var(--ink);
@@ -201,6 +237,26 @@ a {
   border-radius: 12px;
 }
 
+.prose-presence .table-scroll {
+  width: 100%;
+  max-width: 100%;
+  margin: 1.5em 0;
+  overflow: auto;
+  max-height: min(28rem, 70vh);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  -webkit-overflow-scrolling: touch;
+}
+
+.prose-presence .table-scroll table {
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
 .prose-presence table {
   width: 100%;
   margin: 1.5em 0;
@@ -213,6 +269,18 @@ a {
   border-bottom: 1px solid var(--line);
   padding: 0.65rem 0.75rem;
   text-align: left;
+}
+
+.prose-presence .table-scroll th,
+.prose-presence .table-scroll td {
+  white-space: nowrap;
+}
+
+.prose-presence .table-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--paper);
 }
 
 .prose-presence th {
@@ -230,9 +298,31 @@ a {
   border: 1px solid var(--line);
 }
 
-/* Blog post: comfortable reading measure inside a wider shell */
+.prose-presence iframe.embed-tall {
+  height: 480px;
+  min-height: 360px;
+}
+
+.prose-presence iframe.embed-map {
+  height: 420px;
+  min-height: 320px;
+}
+
+.prose-presence iframe.embed-plot {
+  height: 420px;
+  min-height: 280px;
+  background: #fff;
+}
+
 .blog-prose {
   max-width: 46rem;
+}
+
+.blog-prose .table-scroll,
+.blog-prose iframe.embed-map,
+.blog-prose iframe.embed-tall,
+.blog-prose iframe.embed-plot {
+  max-width: min(100vw - 2.5rem, 52rem);
 }
 
 .blog-prose .prose-presence {

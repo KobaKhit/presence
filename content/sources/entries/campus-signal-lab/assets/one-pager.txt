@@ -1,0 +1,13 @@
+Campus Signal Lab — one pager (sample)
+
+Mission
+  Help students publish an agent-readable professional presence.
+
+Deliverables
+  - Personal Presence site
+  - Compiled wiki + graph
+  - MCP endpoint for external agents
+  - Featured project + interactive visual
+
+Contact
+  alex@example.com

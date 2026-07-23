@@ -72,7 +72,7 @@ export function getEnabledModules(): PresenceModule[] {
       name: "Chat",
       description: "Wiki-grounded conversational agent",
       enabled: config.modules.chat,
-      routes: ["/chat", "/api/v1/chat", "/api/agent"],
+      routes: ["/api/v1/chat", "/api/agent"],
       mcpTools: [],
       agentTools: ["search_knowledge", "get_wiki_page"],
     },

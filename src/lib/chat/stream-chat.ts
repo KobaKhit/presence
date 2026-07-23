@@ -6,6 +6,14 @@ export interface ChatSource {
   href?: string;
 }
 
+export interface NavigationAction {
+  href: string;
+  label: string;
+  reason?: string;
+  confidence?: "high" | "medium" | "low";
+  explicit?: boolean;
+}
+
 export interface StreamChatResult {
   content: string;
   sources: ChatSource[];
@@ -13,13 +21,15 @@ export interface StreamChatResult {
   provider?: string;
   model?: string;
   canProposeWiki?: boolean;
+  navigation?: NavigationAction | null;
 }
 
 /**
- * POST /api/v1/chat with stream:true and consume SSE meta/delta/done events.
+ * POST /api/v1/chat with stream:true and consume SSE meta/delta/done/navigation events.
  */
 export async function streamChat(options: {
   messages: { role: string; content: string }[];
+  autoNavigate?: boolean;
   onDelta: (text: string) => void;
   onMeta?: (meta: {
     sources: ChatSource[];
@@ -28,6 +38,7 @@ export async function streamChat(options: {
     model?: string;
     canProposeWiki?: boolean;
   }) => void;
+  onNavigation?: (action: NavigationAction) => void;
   signal?: AbortSignal;
 }): Promise<StreamChatResult> {
   const res = await fetch("/api/v1/chat", {
@@ -36,7 +47,11 @@ export async function streamChat(options: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
     },
-    body: JSON.stringify({ messages: options.messages, stream: true }),
+    body: JSON.stringify({
+      messages: options.messages,
+      stream: true,
+      autoNavigate: options.autoNavigate,
+    }),
     signal: options.signal,
   });
 
@@ -58,6 +73,7 @@ export async function streamChat(options: {
   let provider: string | undefined;
   let model: string | undefined;
   let canProposeWiki = false;
+  let navigation: NavigationAction | null = null;
   let eventName = "message";
 
   while (true) {
@@ -94,6 +110,9 @@ export async function streamChat(options: {
       } else if (eventName === "delta" && typeof data.text === "string") {
         content += data.text;
         options.onDelta(data.text);
+      } else if (eventName === "navigation") {
+        navigation = data as unknown as NavigationAction;
+        options.onNavigation?.(navigation);
       } else if (eventName === "done") {
         content = (data.content as string) ?? content;
         sources = (data.sources as ChatSource[]) ?? sources;
@@ -101,11 +120,14 @@ export async function streamChat(options: {
         provider = (data.provider as string) ?? provider;
         model = (data.model as string) ?? model;
         canProposeWiki = Boolean(data.canProposeWiki);
+        if (data.navigation) {
+          navigation = data.navigation as NavigationAction;
+        }
       } else if (eventName === "error") {
         throw new Error((data.message as string) ?? "Stream error");
       }
     }
   }
 
-  return { content, sources, mode, provider, model, canProposeWiki };
+  return { content, sources, mode, provider, model, canProposeWiki, navigation };
 }

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Presence signal widget</title>
+  <style>
+    :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+    body { margin: 0; padding: 1rem; background: transparent; color: #0d1b2a; }
+    .card { border: 1px solid rgba(13,27,42,.12); border-radius: 14px; padding: 1rem 1.1rem; background: #fff; }
+    h1 { font-size: 0.95rem; margin: 0 0 0.75rem; letter-spacing: -0.02em; }
+    .row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    button { border: 0; border-radius: 999px; padding: 0.4rem 0.8rem; background: #0f766e; color: #fff; font-weight: 600; cursor: pointer; }
+    button.secondary { background: #e2e7ee; color: #0d1b2a; }
+    .meter { height: 10px; border-radius: 999px; background: #e2e7ee; overflow: hidden; }
+    .fill { height: 100%; width: 35%; background: linear-gradient(90deg, #0f766e, #14b8a6); transition: width .35s ease; }
+    p { margin: 0.65rem 0 0; font-size: 0.8rem; color: #5c6b7a; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Discoverability signal</h1>
+    <div class="row">
+      <button type="button" data-v="35">Draft</button>
+      <button type="button" data-v="68" class="secondary">Published</button>
+      <button type="button" data-v="92" class="secondary">Agent-linked</button>
+    </div>
+    <div class="meter" aria-hidden="true"><div class="fill" id="fill"></div></div>
+    <p id="label">Score 35 — add structured metadata and wiki links.</p>
+  </div>
+  <script>
+    const fill = document.getElementById('fill');
+    const label = document.getElementById('label');
+    const copy = {
+      35: 'Score 35 — add structured metadata and wiki links.',
+      68: 'Score 68 — published with citations and tags.',
+      92: 'Score 92 — MCP + API expose this work to agents.'
+    };
+    document.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-v');
+        fill.style.width = v + '%';
+        label.textContent = copy[v];
+        document.querySelectorAll('button').forEach((b) => b.classList.add('secondary'));
+        btn.classList.remove('secondary');
+      });
+    });
+  </script>
+</body>
+</html>

@@ -87,9 +87,7 @@ export default function DeployPage() {
             <Link href="/wiki" className="text-accent hover:underline">
               Wiki graph
             </Link>
-            <Link href="/chat" className="text-accent hover:underline">
-              Chat
-            </Link>
+            <span className="text-muted">Floating agent (bottom-right)</span>
             <Link href="/docs" className="text-accent hover:underline">
               Docs
             </Link>

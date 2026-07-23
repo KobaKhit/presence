@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skill Orbit</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: radial-gradient(circle at 30% 20%, #123, #0b1220 60%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+    .wrap { width: min(640px, 100%); }
+    h1 { margin: 0 0 0.35rem; font-size: 1.35rem; letter-spacing: -0.02em; }
+    p { margin: 0 0 1rem; color: #94a3b8; font-size: 0.9rem; }
+    canvas { width: 100%; height: auto; border-radius: 18px; background: rgba(15,23,42,.55); border: 1px solid rgba(148,163,184,.2); display: block; }
+    .controls { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.85rem; font-size: 0.85rem; color: #cbd5e1; }
+    input[type=range] { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Skill Orbit</h1>
+    <p>Interactive sample visual for Presence — packaged beside its markdown entry.</p>
+    <canvas id="c" width="640" height="420" aria-label="Skill orbit visualization"></canvas>
+    <div class="controls">
+      <label for="spin">Emphasis</label>
+      <input id="spin" type="range" min="0" max="100" value="42" />
+      <span id="val">42</span>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const skills = ['Writing', 'Data', 'Design', 'Agents', 'Systems', 'Research'];
+    const spin = document.getElementById('spin');
+    const val = document.getElementById('val');
+    let t = 0;
+
+    function draw() {
+      const w = canvas.width, h = canvas.height;
+      const emphasis = Number(spin.value) / 100;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = 'rgba(56,189,248,0.08)';
+      ctx.beginPath();
+      ctx.arc(w/2, h/2, 150 + emphasis * 40, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(w/2, h/2, 18 + emphasis * 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '600 14px ui-sans-serif, system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('You', w/2, h/2 + 5);
+      skills.forEach((name, i) => {
+        const a = t + (i / skills.length) * Math.PI * 2;
+        const r = 120 + Math.sin(t * 1.5 + i) * 12 + emphasis * 30;
+        const x = w/2 + Math.cos(a) * r;
+        const y = h/2 + Math.sin(a) * r;
+        ctx.strokeStyle = 'rgba(125,211,252,0.35)';
+        ctx.beginPath();
+        ctx.moveTo(w/2, h/2);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.fillStyle = '#7dd3fc';
+        ctx.beginPath();
+        ctx.arc(x, y, 8 + emphasis * 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '12px ui-sans-serif, system-ui';
+        ctx.fillText(name, x, y - 14);
+      });
+      t += 0.008 + emphasis * 0.01;
+      requestAnimationFrame(draw);
+    }
+    spin.addEventListener('input', () => { val.textContent = spin.value; });
+    draw();
+  </script>
+</body>
+</html>

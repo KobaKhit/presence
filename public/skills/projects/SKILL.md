@@ -9,4 +9,8 @@ Folder packaging lets each visual (or project with assets) ship custom HTML/JS/C
 
 Same rule as blog: keep interactive assets **inside the entry folder** (e.g. `embeds/`), served at `/entries/{slug}/…` — not a global `public/embeds/` dump.
 
+Samples:
+- Project: `campus-signal-lab/` (`url`, `github`, `pdf`, `image`, `featured`)
+- Visual: `skill-orbit/` (`visualPath: index.html` + interactive `index.html`)
+
 See [docs/entries.md](/docs/entries) and [blog skill](/skills/blog/SKILL.md) for packaging details.

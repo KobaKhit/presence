@@ -38,3 +38,6 @@ Default persistent store: `data/vectors.sqlite` (SQLite). Optional Postgres/pgve
 4. Keep Zod schemas in sync when adding routes.
 5. Do not invent a published template URL — set `deploy.templateRepoUrl` only when real.
 6. Entry packaging: posts/projects/visuals with local interactives (maps, plots, widgets) use a **folder** under `content/sources/entries/{slug}/` with `index.md` + sibling assets (e.g. `embeds/`). Serve via `/entries/{slug}/…`. Do not dump post-specific HTML into `public/embeds/`. See `docs/entries.md` and `/skills/blog/SKILL.md`.
+7. Visitor chat is the floating agent only (no Chat nav tab). Navigation actions must be allowlisted internal routes; confirm-first by default.
+8. Themes live in `content/presence.config.ts` (`theme.presets`); do not hardcode colors only in CSS.
+9. Publishing contracts (`src/lib/publishing`) stay filesystem in OSS; see `docs/paid-platform.md` for hosted seams. Write routes use shared `assertAdmin` (fail-closed in production).

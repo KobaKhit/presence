@@ -133,8 +133,66 @@ export const ChatMessageSchema = z
 export const ChatRequestSchema = z
   .object({
     messages: z.array(ChatMessageSchema).min(1),
+    /** When true, client may auto-follow explicit navigation actions. */
+    autoNavigate: z.boolean().optional(),
   })
   .openapi("ChatRequest");
+
+export const NavigationActionSchema = z
+  .object({
+    href: z.string().min(1),
+    label: z.string().min(1),
+    reason: z.string().optional(),
+    confidence: z.enum(["high", "medium", "low"]).optional(),
+    explicit: z.boolean().optional(),
+  })
+  .openapi("NavigationAction");
+
+export const EntryTypeSchema = z.enum(["post", "project", "visual"]).openapi("EntryType");
+
+export const EntryDraftSchema = z
+  .object({
+    slug: z
+      .string()
+      .min(1)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    type: EntryTypeSchema,
+    frontmatter: z.record(z.string(), z.unknown()),
+    body: z.string(),
+    asFolder: z.boolean().optional(),
+    draft: z.boolean().optional(),
+  })
+  .openapi("EntryDraft");
+
+export const EntryAssetSchema = z
+  .object({
+    relativePath: z.string().min(1),
+    content: z.string(),
+    contentType: z.string().optional(),
+  })
+  .openapi("EntryAsset");
+
+export const PublishResultSchema = z
+  .object({
+    slug: z.string(),
+    type: EntryTypeSchema,
+    path: z.string(),
+    published: z.boolean(),
+    warnings: z.array(z.string()),
+  })
+  .openapi("PublishResult");
+
+export const PublishJobSchema = z
+  .object({
+    id: z.string(),
+    kind: z.enum(["compile-graph", "compile-full", "reindex"]),
+    status: z.enum(["queued", "running", "succeeded", "failed"]),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    error: z.string().optional(),
+    result: z.record(z.string(), z.unknown()).optional(),
+  })
+  .openapi("PublishJob");
 
 export const WikiPageProposalSchema = z
   .object({

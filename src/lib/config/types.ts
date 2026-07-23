@@ -5,13 +5,28 @@ export interface PresenceSocial {
   [key: string]: string | undefined;
 }
 
-export interface PresenceTheme {
+/** Single palette applied as CSS variables. */
+export interface PresenceThemePalette {
   accent: string;
   accentBright: string;
   ink: string;
   muted: string;
   paper: string;
+  paperDeep?: string;
+  accentWarm?: string;
 }
+
+/**
+ * Named theme presets visitors can toggle.
+ * `defaultTheme` selects the initial preset id.
+ */
+export interface PresenceThemeConfig {
+  defaultTheme: string;
+  presets: Record<string, PresenceThemePalette & { label: string }>;
+}
+
+/** @deprecated flat theme — still accepted and mapped to a single "default" preset */
+export type PresenceTheme = PresenceThemePalette;
 
 export interface PresenceModules {
   blog: boolean;
@@ -55,7 +70,7 @@ export interface PresenceConfig {
   email?: string;
   website?: string;
   social: PresenceSocial;
-  theme: PresenceTheme;
+  theme: PresenceThemeConfig | PresenceTheme;
   modules: PresenceModules;
   features: PresenceFeatures;
   knowledge: PresenceKnowledgeConfig;

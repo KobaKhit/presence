@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#eef1f5"/>
+  <rect x="40" y="40" width="880" height="460" rx="28" fill="#0d1b2a"/>
+  <text x="80" y="160" fill="#14b8a6" font-family="ui-sans-serif, system-ui" font-size="28" font-weight="700">PROJECT</text>
+  <text x="80" y="230" fill="#ffffff" font-family="Georgia, serif" font-size="54">Campus Signal Lab</text>
+  <text x="80" y="290" fill="#94a3b8" font-family="ui-sans-serif, system-ui" font-size="22">Knowledge graph · MCP · student presence</text>
+  <circle cx="760" cy="340" r="90" fill="#0f766e" opacity="0.9"/>
+  <circle cx="820" cy="280" r="40" fill="#c45c26" opacity="0.85"/>
+</svg>

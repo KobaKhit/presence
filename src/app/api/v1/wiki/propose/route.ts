@@ -1,22 +1,10 @@
 import { NextResponse } from "next/server";
 import { WikiProposeSchema } from "@/lib/api/schemas";
+import { assertAdmin } from "@/lib/auth/admin";
 import { getKnowledgeProvider } from "@/lib/knowledge";
 import { proposeWikiPageFromChat } from "@/lib/llm";
 
 export const runtime = "nodejs";
-
-function assertAdmin(request: Request): NextResponse | null {
-  const token =
-    process.env.PRESENCE_ADMIN_TOKEN?.trim() || process.env.PERSONA_ADMIN_TOKEN?.trim();
-  if (!token) return null;
-  const header = request.headers.get("authorization");
-  const bearer = header?.startsWith("Bearer ") ? header.slice(7) : null;
-  const alt =
-    request.headers.get("x-presence-admin-token") ||
-    request.headers.get("x-persona-admin-token");
-  if (bearer === token || alt === token) return null;
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
 
 /**
  * Draft a wiki page from a chat Q&A for human approval (save-back loop).

@@ -6,6 +6,9 @@ import {
   WikiGraphSchema,
   SearchQuerySchema,
   ChatRequestSchema,
+  EntryDraftSchema,
+  NavigationActionSchema,
+  ProjectSummarySchema,
 } from "@/lib/api/schemas";
 import { extractWikiLinks, renderWikiLinks, stripDuplicateTitleH1 } from "@/lib/content/markdown";
 import {
@@ -14,6 +17,14 @@ import {
   isSignificantEntity,
   type SourceIndex,
 } from "@/lib/content/citations";
+import {
+  isAllowedNavigationHref,
+  looksLikeExplicitNavigation,
+  sanitizeNavigationAction,
+  validateEntryDraft,
+} from "@/lib/publishing";
+import { BUILTIN_THEME_PRESETS, resolveThemeConfig } from "@/lib/config/themes";
+import type { PresenceConfig } from "@/lib/config/types";
 
 describe("OpenAPI / Zod schemas", () => {
   it("parses PresenceSchema sample", () => {
@@ -60,8 +71,40 @@ describe("OpenAPI / Zod schemas", () => {
     expect(
       ChatRequestSchema.parse({
         messages: [{ role: "user", content: "hi" }],
-      }).messages[0].role,
-    ).toBe("user");
+        autoNavigate: true,
+      }).autoNavigate,
+    ).toBe(true);
+
+    expect(
+      ProjectSummarySchema.parse({
+        slug: "lab",
+        title: "Lab",
+        date: "2026-01-01",
+        summary: "x",
+        tags: [],
+        status: "active",
+        kind: "project",
+        featured: true,
+      }).featured,
+    ).toBe(true);
+
+    expect(
+      EntryDraftSchema.parse({
+        slug: "my-post",
+        type: "post",
+        frontmatter: { title: "Hi" },
+        body: "Hello",
+      }).type,
+    ).toBe("post");
+
+    expect(
+      NavigationActionSchema.parse({
+        href: "/blog",
+        label: "Blog",
+        confidence: "high",
+        explicit: true,
+      }).href,
+    ).toBe("/blog");
   });
 });
 
@@ -173,5 +216,71 @@ describe("citation helper", () => {
         index,
       ),
     ).toBe(true);
+  });
+});
+
+describe("publishing / navigation", () => {
+  it("validates entry drafts", () => {
+    expect(
+      validateEntryDraft({
+        slug: "Bad Slug",
+        type: "post",
+        frontmatter: {},
+        body: "x",
+      }).some((i) => i.field === "slug"),
+    ).toBe(true);
+
+    expect(
+      validateEntryDraft({
+        slug: "good-post",
+        type: "post",
+        frontmatter: { title: "Hello" },
+        body: "body",
+      }),
+    ).toEqual([]);
+  });
+
+  it("allowlists internal navigation only", () => {
+    expect(isAllowedNavigationHref("/blog")).toBe(true);
+    expect(isAllowedNavigationHref("/wiki/alex-rivera")).toBe(true);
+    expect(isAllowedNavigationHref("https://evil.example")).toBe(false);
+    expect(isAllowedNavigationHref("//evil.example")).toBe(false);
+    expect(isAllowedNavigationHref("/blog/../etc/passwd")).toBe(false);
+    expect(sanitizeNavigationAction({ href: "/projects", label: "Projects" })?.href).toBe(
+      "/projects",
+    );
+    expect(sanitizeNavigationAction({ href: "https://x.com", label: "X" })).toBeNull();
+  });
+
+  it("detects explicit navigation phrasing", () => {
+    expect(looksLikeExplicitNavigation("take me to the wiki")).toBe(true);
+    expect(looksLikeExplicitNavigation("what is Presence?")).toBe(false);
+  });
+});
+
+describe("themes", () => {
+  it("resolves named presets and legacy flat themes", () => {
+    expect(Object.keys(BUILTIN_THEME_PRESETS)).toEqual(
+      expect.arrayContaining(["lab", "midnight", "minimal"]),
+    );
+
+    const modern = resolveThemeConfig({
+      theme: {
+        defaultTheme: "midnight",
+        presets: BUILTIN_THEME_PRESETS,
+      },
+    } as PresenceConfig);
+    expect(modern.defaultTheme).toBe("midnight");
+
+    const legacy = resolveThemeConfig({
+      theme: {
+        accent: "#111",
+        accentBright: "#222",
+        ink: "#000",
+        muted: "#333",
+        paper: "#fff",
+      },
+    } as PresenceConfig);
+    expect(legacy.presets.lab.accent).toBe("#111");
   });
 });
