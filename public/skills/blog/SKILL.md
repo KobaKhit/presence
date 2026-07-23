@@ -21,6 +21,8 @@ In `index.md`, reference sibling assets via the entry asset route:
 
 A single flat `.md` file is fine for text-only posts with no local assets.
 
+LaTeX: use `$inline$` / `$$display$$` (KaTeX). Escape currency as `\$189`.
+
 ## Rules for agents
 
 1. Do **not** dump post-specific HTML into `public/embeds/`. Keep embeds next to the post under `embeds/` (or another sibling folder in the entry).

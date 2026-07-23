@@ -113,6 +113,18 @@ a {
   margin: 1.1em 0;
 }
 
+.prose-presence .katex {
+  font-size: 1.05em;
+  color: var(--ink);
+}
+
+.prose-presence .katex-display {
+  margin: 1.35em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.15em 0;
+}
+
 .prose-presence a {
   color: var(--accent);
   text-decoration: underline;

@@ -1,4 +1,4 @@
-﻿# AGENTS.md
+# AGENTS.md
 
 Canonical copy also served at `/AGENTS.md` (see `public/AGENTS.md`).
 

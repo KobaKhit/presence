@@ -1,11 +1,10 @@
-﻿# Presence
+# Presence
 
 Open-source **Next.js personal site framework** where the site is the front door, the API is a contract, and a compiled LLM Wiki powers search, chat, and MCP.
 
 > Use this repo as a **GitHub Template** → edit `content/` → deploy. Zero-config boot (SQLite vectors, no cloud DB required).
 
-**Template:** [https://github.com/KobaKhit/presence](https://github.com/KobaKhit/presence)  
-**Demo:** [https://presence-lilac-theta.vercel.app](https://presence-lilac-theta.vercel.app)
+**Template:** [https://github.com/KobaKhit/presence](https://github.com/KobaKhit/presence)
 
 ## Features
 

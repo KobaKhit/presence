@@ -10,6 +10,10 @@ Tabs filter by frontmatter `type`:
 | `project` | Projects → `/projects` |
 | `visual` | Visuals → `/visuals` |
 
+## Math (LaTeX)
+
+Markdown supports KaTeX via `$inline$` and `$$display$$` (also `\(…\)` / `\[…\]`). Escape literal dollar signs as `\$` when they are currency (e.g. `\$189 million`), so they are not parsed as math.
+
 ## Packaging (pick one)
 
 ### Single markdown file

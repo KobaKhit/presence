@@ -4,6 +4,7 @@ import { FloatingChat } from "@/components/floating-chat";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getPresenceConfig } from "@/lib/config";
+import "katex/dist/katex.min.css";
 import "./globals.css";
 
 const syne = Syne({

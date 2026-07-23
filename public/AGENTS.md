@@ -1,4 +1,4 @@
-﻿# Agent guide — Presence personal site
+# Agent guide — Presence personal site
 
 You are working with a **Presence** site: Next.js App Router + a compiled LLM Wiki.
 
